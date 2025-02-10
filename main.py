@@ -297,6 +297,48 @@ def delete_reservation(reservation_id):
         db.session.rollback()
         return jsonify({"msg": str(e)}), 500
 
+# Neue Route zum Aktualisieren von Reservierungen
+@app.route("/api/reservations/<int:reservation_id>", methods=['PUT'])
+@jwt_required()
+def update_reservation(reservation_id):
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user).first()
+    
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    reservation = Reservation.query.get(reservation_id)
+    
+    if not reservation:
+        return jsonify({"msg": "Reservierung nicht gefunden"}), 404
+        
+    if reservation.user_id != user.id:
+        return jsonify({"msg": "Nicht autorisiert"}), 403
+
+    data = request.get_json()
+    try:
+        if 'start' in data:
+            reservation.start_time = datetime.fromisoformat(data['start'].replace("Z", "+00:00"))
+        if 'end' in data:
+            reservation.end_time = datetime.fromisoformat(data['end'].replace("Z", "+00:00"))
+        if 'purpose' in data:
+            reservation.purpose = data['purpose']
+            
+        db.session.commit()
+        return jsonify({
+            "msg": "Reservierung aktualisiert",
+            "reservation": {
+                "id": reservation.id,
+                "Zweck": reservation.purpose,
+                "Startzeit": reservation.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "Endzeit": reservation.end_time.strftime('%Y-%m-%d %H:%M:%S'),
+                "room_name": reservation.room.name
+            }
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": str(e)}), 500
+
 # Flask-Server starten
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
