@@ -271,6 +271,31 @@ def signup():
         db.session.rollback()
         return jsonify({"msg": "Fehler bei der Registrierung"}), 500
 
+# Neue Route zum Löschen von Reservierungen
+@app.route("/api/reservations/<int:reservation_id>", methods=['DELETE'])
+@jwt_required()
+def delete_reservation(reservation_id):
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user).first()
+    
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+
+    reservation = Reservation.query.get(reservation_id)
+    
+    if not reservation:
+        return jsonify({"msg": "Reservierung nicht gefunden"}), 404
+        
+    if reservation.user_id != user.id:
+        return jsonify({"msg": "Nicht autorisiert"}), 403
+
+    try:
+        db.session.delete(reservation)
+        db.session.commit()
+        return jsonify({"msg": "Reservierung erfolgreich gelöscht"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": str(e)}), 500
 
 # Flask-Server starten
 if __name__ == '__main__':
