@@ -19,13 +19,8 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=10)  # Ablaufzeit des
 
 # SQLAlchemy konfigurieren
 
-# Localhost
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Xiaomiao1@localhost/phase1_mydb'
-
-# AWS RDS
-app.config[
-    'SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:Xiaomiao1$@roomreservationdb.chgqgaiaee5i.eu-north-1.rds.amazonaws.com/phase1_mydb'
-
+# SQLite Konfiguration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy-Datenbankinstanz erstellen
@@ -339,6 +334,73 @@ def update_reservation(reservation_id):
         db.session.rollback()
         return jsonify({"msg": str(e)}), 500
 
-# Flask-Server starten
+# Am Ende der Datei vor dem Serverstart Datenbanktabellen erstellen
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+        
+        if not User.query.first():
+            # Moderne Standortbezeichnungen
+            locations = [
+                Location(city="Innovation Campus"),
+                Location(city="Downtown Hub"),
+                Location(city="Urban Oasis"),
+                Location(city="Tech Tower")
+            ]
+            db.session.add_all(locations)
+            
+            # Vielfältige Raumtypen
+            rooms = [
+                Room(name="Brainstorm Lounge", capacity=8, location=locations[0]),
+                Room(name="Executive Suite", capacity=12, location=locations[1]),
+                Room(name="Creative Lab", capacity=15, location=locations[2]),
+                Room(name="Sky Conference", capacity=20, location=locations[3])
+            ]
+            db.session.add_all(rooms)
+            
+            # Normale Benutzernamen
+            users = [
+                User(username="max.mustermann", password="S1cher#2024"),
+                User(username="lina.hoffmann", password="Passwort!123"),
+                User(username="felix.bauer", password="Meet1ngRoom"),
+                User(username="sophie.becker", password="Event$pace")
+            ]
+            db.session.add_all(users)
+            
+            # Typische Buchungsszenarien
+            reservations = [
+                Reservation(
+                    user=users[0],
+                    room=rooms[0],
+                    purpose="Startup Pitch Training",
+                    start_time=datetime(2025, 5, 10, 9, 0),
+                    end_time=datetime(2025, 5, 10, 12, 0)
+                ),
+                Reservation(
+                    user=users[1],
+                    room=rooms[1],
+                    purpose="Kundengespräch ACME Corp",
+                    start_time=datetime(2025, 5, 11, 14, 30),
+                    end_time=datetime(2025, 5, 11, 16, 0)
+                ),
+                Reservation(
+                    user=users[2],
+                    room=rooms[2],
+                    purpose="Design Thinking Workshop",
+                    start_time=datetime(2025, 5, 12, 10, 0),
+                    end_time=datetime(2025, 5, 12, 17, 0)
+                ),
+                Reservation(
+                    user=users[3],
+                    room=rooms[3],
+                    purpose="Jahresversammlung",
+                    start_time=datetime(2025, 5, 13, 8, 0),
+                    end_time=datetime(2025, 5, 13, 18, 0)
+                )
+            ]
+            db.session.add_all(reservations)
+            
+            db.session.commit()
+            print("✅ Universelle Testdaten für Raumverwaltung initialisiert")
+
     app.run(debug=True, port=8080)
